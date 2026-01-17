@@ -1745,36 +1745,37 @@
         return date.toLocaleString('default', { weekday: 'short' });
     }
 
-    // Function to fetch the current count on page load
-    async function updateCounterDisplay() {
-        const namespace = "iimv-pgp-2026"; // Choose a unique name
-        const key = "timetable-prints";
-        try {
-            const response = await fetch(`https://api.countapi.xyz/get/${namespace}/${key}`);
-            const data = await response.json();
-            document.getElementById('printCount').innerText = data.value || 0;
-        } catch (error) {
-            document.getElementById('printCount').innerText = "0";
-        }
-    }
+async function updateCounterDisplay() {
+    const namespace = "iimv-pgp-term6-2026"; 
+    const key = "print-stats";
+    
+    fetch(`https://api.countapi.xyz/get/${namespace}/${key}`)
+        .then(res => res.json())
+        .then(data => {
+            if(data.value) document.getElementById('printCount').innerText = data.value;
+        })
+        .catch(() => {
+            document.getElementById('printCount').innerText = "Available";
+        });
+}
 
-    // Function to increment the count when printing
-    async function incrementPrintCounter() {
-        const namespace = "iimv-pgp-2026";
-        const key = "timetable-prints";
-        try {
-            const response = await fetch(`https://api.countapi.xyz/hit/${namespace}/${key}`);
-            const data = await response.json();
-            document.getElementById('printCount').innerText = data.value;
-            window.print(); // Trigger the actual print dialog
-        } catch (error) {
-            window.print();
-        }
-    }
+function incrementPrintCounter() {
+    window.print();
+    const namespace = "iimv-pgp-term6-2026";
+    const key = "print-stats";
+    
+    fetch(`https://api.countapi.xyz/hit/${namespace}/${key}`)
+        .then(res => res.json())
+        .then(data => {
+            if(data.value) document.getElementById('printCount').innerText = data.value;
+        })
+        .catch(err => console.error("Counter update failed", err));
+}
 
-    // Call the update display function when the page loads
-    window.onload = updateCounterDisplay;
+// Ensure the counter loads on startup
+window.onload = updateCounterDisplay;
 </script>
 
 </body>
+
 </html>
