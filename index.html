@@ -39,6 +39,7 @@
             th, td { border: 1px solid #000 !important; padding: 6px; }
             th { background-color: #003366 !important; color: white !important; }
             .holiday { background-color: #fff3cd !important; }
+            td { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             .session-content { color: #000; font-weight: 900; }
         }
     </style>
@@ -1617,8 +1618,17 @@
 
     // 12 Distinct Colors
     const colorPalette = [
-        "#FFB3BA", "#FFDFBA", "#FFFFBA", "#BAFFC9", "#BAE1FF", "#E6B3FF",
-        "#FFB3E6", "#B3FFF0", "#E6FF80", "#FF9999", "#99CCFF", "#CC99FF"
+        { code: "#FFDFBA", name: "Peach" },
+        { code: "#FFFFBA", name: "Yellow" },
+        { code: "#BAFFC9", name: "Mint" },
+        { code: "#BAE1FF", name: "Sky" },
+        { code: "#E6B3FF", name: "Lavender" },
+        { code: "#FFB3E6", name: "Rose" },
+        { code: "#B3FFF0", name: "Aqua" },
+        { code: "#E6FF80", name: "Lime" },
+        { code: "#FF9999", name: "Salmon" },
+        { code: "#99CCFF", name: "Blue" },
+        { code: "#CC99FF", name: "Violet" }
     ];
 
     // Setup Course Selection Table
@@ -1626,7 +1636,7 @@
     courses.forEach((c, index) => {
         const row = document.createElement('tr');
         // Assign default color cyclically
-        const defaultColor = colorPalette[index % colorPalette.length];
+        const defaultColor = colorPalette[Math.floor(Math.random() * colorPalette.length)].code;
         
         row.innerHTML = `
             <td>${c.id}</td>
@@ -1640,8 +1650,8 @@
                 </select>
             </td>
             <td>
-                <select id="col-${c.short}" style="background-color:white;" onchange="this.style.backgroundColor=this.value">
-                    ${colorPalette.map(col => `<option value="${col}" style="background-color:${col};" ${col === defaultColor ? 'selected' : ''}>${col}</option>`).join('')}
+                <select id="col-${c.short}" style="background-color:white; color: white;" onchange="this.style.backgroundColor=this.value; this.style.color='black'">
+                    ${colorPalette.map(col => `<option value="${col.code}" style="background-color:${col.code}; color:black;" ${col.code === defaultColor ? 'selected' : ''}>${col.name}</option>`).join('')}
                 </select>
             </td>
         `;
@@ -1653,8 +1663,10 @@
         const colorSel = document.getElementById(`col-${courseShort}`);
         if (sectionSel.value === 'NA') {
             colorSel.style.backgroundColor = 'white';
+            colorSel.style.color = 'white';
         } else {
             colorSel.style.backgroundColor = colorSel.value;
+            colorSel.style.color = 'black';
         }
     }
 
@@ -1747,7 +1759,7 @@
     }
 
     function updateCounterDisplay() {
-        const namespace = "iimv-pgp-term6-2026"; 
+        const namespace = "iimv-pgp-term-6-2026"; 
         const key = "print-stats";
         
         // Switched to counterapi.dev as countapi.xyz is down
@@ -1781,4 +1793,3 @@ window.onload = updateCounterDisplay;
 </body>
 
 </html>
-
