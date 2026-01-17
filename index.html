@@ -1,0 +1,1780 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>IIMV PGP Term-6 Timetable Generator</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; padding: 20px; line-height: 1.6; }
+        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 1300px; margin: auto; }
+        h1, h2 { color: #003366; text-align: center; margin-bottom: 20px; }
+        .instruction { background: #e7f3ff; padding: 10px; border-left: 5px solid #003366; margin-bottom: 20px; font-size: 0.9rem; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; table-layout: fixed; }
+        th, td { border: 1px solid #dee2e6; padding: 10px; text-align: center; word-wrap: break-word; font-size: 0.8rem; }
+        th { background: #003366; color: white; }
+        
+        .selection-table { margin-bottom: 30px; table-layout: auto; }
+        .selection-table th { background: #555; }
+        
+        select { padding: 5px; border-radius: 4px; border: 1px solid #ccc; width: 100%; }
+        
+        .btn-container { text-align: center; margin: 30px 0; }
+        .btn { padding: 12px 30px; cursor: pointer; border: none; border-radius: 6px; font-weight: bold; font-size: 1rem; transition: 0.3s; }
+        .btn-generate { background: #003366; color: white; }
+        .btn-generate:hover { background: #001a33; }
+        .btn-download { background: #28a745; color: white; display: none; margin: 10px auto; }
+        
+        .holiday { background: #fff3cd !important; font-weight: bold; color: #856404; }
+        .exam { background: #f8d7da !important; font-weight: bold; color: #721c24; }
+        .session-content { font-weight: 600; color: #003366; }
+        .sunday { background-color: #e0e0e0; color: #555; }
+        
+        @media print {
+            @page { margin: 5mm; size: portrait; }
+            body { background: white; padding: 0; margin: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .no-print { display: none !important; }
+            .card { box-shadow: none; border: none; width: 100%; max-width: 100%; padding: 0; margin: 0; }
+            h2 { margin-top: 0; color: #003366; font-size: 1.5rem; text-decoration: underline; }
+            table { font-size: 0.75rem; width: 100%; border-collapse: collapse; }
+            th, td { border: 1px solid #000 !important; padding: 6px; }
+            th { background-color: #003366 !important; color: white !important; }
+            .holiday { background-color: #fff3cd !important; }
+            .session-content { color: #000; font-weight: 900; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="card no-print" id="setupSection">
+    <h1>Term-6 Course Selection</h1>
+    <div class="instruction">
+        Select your assigned section for each course. Courses marked as <b>NA</b> will not appear on your generated timetable.
+    </div>
+    
+    <table class="selection-table">
+        <thead>
+            <tr>
+                <th>Code</th>
+                <th>Course Title</th>
+                <th>Faculty</th>
+                <th style="width: 150px;">Section Choice</th>
+                <th style="width: 120px;">BG Colour</th>
+            </tr>
+        </thead>
+        <tbody id="courseSelectionBody">
+            </tbody>
+    </table>
+    
+    <div class="btn-container">
+    <button class="btn btn-generate" onclick="generateTimetable()">Generate My Timetable</button>
+    <p style="font-size: 0.8rem; color: #666; margin-top: 10px;">
+        Total Timetables Printed/Downloaded: <span id="printCount">Loading...</span>
+    </p>
+</div>
+</div>
+
+<div class="card" id="timetableResult" style="display:none;">
+    <div class="btn-container no-print">
+        <button class="btn btn-download" id="dlBtn" onclick="incrementPrintCounter()">Download as PDF / Print</button>
+    </div>
+    <h2>PGP 2024-26: Term-6 Custom Schedule</h2>
+    <p style="text-align:center; font-size: 0.9rem; margin-top:-15px;">Term Period: Jan 5 - March 29, 2026</p>
+    
+    <table id="scheduleTable">
+        <thead>
+            <tr>
+                <th style="width: 80px;">Date</th>
+                <th style="width: 50px;">Day</th>
+                <th>08:30-10:00</th>
+                <th>10:15-11:45</th>
+                <th>12:00-13:30</th>
+                <th>14:30-16:00</th>
+                <th>16:15-17:45</th>
+                <th>18:00-19:30</th>
+                <th>19:45-21:15</th>
+            </tr>
+        </thead>
+        <tbody id="scheduleBody">
+            </tbody>
+    </table>
+</div>
+
+<script>
+    // Comprehensive Course Data 
+    const courses = [
+        {id: "MKT012", title: "Bottom of Pyramid Marketing", short: "BOPM", faculty: "Prof. Amit Shankar"},
+        {id: "OBH004", title: "Diversity, Equity and Inclusion", short: "DEIX", faculty: "Prof. Juman Iqbal"},
+        {id: "INS007", title: "Emerging Technologies for Managers", short: "ETM", faculty: "Prof. Abhishek Srivastava"},
+        {id: "OBH005", title: "Competencies for Effective Leadership", short: "EICEL", faculty: "Prof. Happy Paul"},
+        {id: "MKT013", title: "Entrepreneurial Marketing", short: "ENTM", faculty: "Prof. Amit Shankar"},
+        {id: "MKT014", title: "Extended Multi Channel Retail Mgt", short: "EMCRM", faculty: "Prof. Sunil Chandran"},
+        {id: "FNA010", title: "Financial Derivatives", short: "FINDER", faculty: "Prof. Kaveri Krishnan"},
+        {id: "DS1008", title: "Game Theory and Mechanism Design", short: "GTMD", faculty: "Prof. Shivshanker Singh Patel"},
+        {id: "ESS004", title: "International Economics", short: "INTECO", faculty: "Prof. Kalyan Kolukuluri"},
+        {id: "ENT002", title: "New Venture Creation", short: "NVCR", faculty: "Prof. Sushil Kumar"},
+        {id: "POM009", title: "Optimizing Pricing & Revenue Mgt", short: "OPRM", faculty: "Prof. Milan Kumar"},
+        {id: "ESS005", title: "Public Finance and Fiscal Strategy", short: "PFFS", faculty: "Prof. Abinash Singh"},
+        {id: "MKT015", title: "Sales and Distribution Management", short: "SDM", faculty: "Prof. Pingali Venugopal"},
+        {id: "POM011", title: "Service Operations Management", short: "SOMT", faculty: "Prof. PRS Sarma"},
+        {id: "FNA012", title: "Startup Capital & Growth Fund", short: "SCGF", faculty: "Prof. M Shameem Jawed"},
+        {id: "STG007", title: "Strategic Mgt of Tech Innovation", short: "SMTI", faculty: "Prof. Shiwangi Singh"}
+    ];
+
+    const scheduleData = [
+  {
+    "date": "05-Jan-26",
+    "day": "Mon",
+    "sessions": {
+      "3": {
+        "A": "EICEL"
+      },
+      "4": {
+        "A": "SCGF"
+      },
+      "5": {
+        "B": "ETM",
+        "A": "SOMT"
+      },
+      "6": {
+        "B": "ETM",
+        "A": "SOMT"
+      }
+    }
+  },
+  {
+    "date": "06-Jan-26",
+    "day": "Tue",
+    "sessions": {
+      "1": {
+        "A": "SMTI"
+      },
+      "2": {
+        "B": "SMTI"
+      },
+      "3": {
+        "A": "SCGF"
+      },
+      "4": {
+        "A": [
+          "FINDER",
+          "BOPM"
+        ]
+      },
+      "5": {
+        "A": "BOPM"
+      },
+      "6": {
+        "A": "PFFS"
+      }
+    }
+  },
+  {
+    "date": "07-Jan-26",
+    "day": "Wed",
+    "sessions": {
+      "1": {
+        "A": "OPRM"
+      },
+      "2": {
+        "A": "EICEL"
+      },
+      "3": {
+        "A": "GTMD"
+      },
+      "4": {
+        "B": "SOMT",
+        "A": "ETM"
+      },
+      "5": {
+        "A": "ETM",
+        "B": "SOMT"
+      },
+      "6": {
+        "A": "EMCRM"
+      },
+      "7": {
+        "B": "EMCRM"
+      }
+    }
+  },
+  {
+    "date": "08-Jan-26",
+    "day": "Thu",
+    "sessions": {
+      "1": {
+        "A": "INTECO"
+      },
+      "2": {
+        "A": "INTECO"
+      },
+      "3": {
+        "A": "FINDER"
+      },
+      "4": {
+        "A": "GTMD"
+      },
+      "5": {
+        "A": "EMCRM",
+        "B": "SDM"
+      },
+      "6": {
+        "B": "EMCRM",
+        "A": "SDM"
+      },
+      "7": {
+        "B": "EMCRM"
+      }
+    }
+  },
+  {
+    "date": "09-Jan-26",
+    "day": "Fri",
+    "sessions": {
+      "1": {
+        "A": "EMCRM"
+      },
+      "2": {
+        "A": "EMCRM",
+        "B": "SDM"
+      },
+      "3": {
+        "B": "EMCRM"
+      },
+      "4": {
+        "A": "SDM"
+      },
+      "5": {
+        "A": "PFFS"
+      },
+      "6": {
+        "B": "SDM"
+      }
+    }
+  },
+  {
+    "date": "10-Jan-26",
+    "day": "Sat",
+    "sessions": {
+      "2": {
+        "A": "SDM"
+      },
+      "3": {
+        "A": "DEIX"
+      },
+      "4": {
+        "A": "DEIX"
+      },
+      "5": {
+        "B": "SDM"
+      },
+      "6": {
+        "A": "SDM"
+      }
+    }
+  },
+  {
+    "date": "11-Jan-26",
+    "day": "Sun",
+    "sessions": {
+      "1": {
+        "A": "SDM"
+      },
+      "2": {
+        "B": "SDM"
+      }
+    }
+  },
+  {
+    "date": "12-Jan-26",
+    "day": "Mon",
+    "sessions": {
+      "2": {
+        "A": "EICEL"
+      },
+      "3": {
+        "A": "PFFS"
+      },
+      "4": {
+        "A": "FINDER"
+      },
+      "5": {
+        "A": "GTMD"
+      },
+      "6": {
+        "A": "SCGF"
+      }
+    }
+  },
+  {
+    "date": "13-Jan-26",
+    "day": "Tue",
+    "sessions": {
+      "2": {
+        "A": "EICEL"
+      },
+      "3": {
+        "A": "FINDER"
+      },
+      "4": {
+        "A": "SCGF"
+      },
+      "5": {
+        "A": "GTMD"
+      }
+    }
+  },
+  {
+    "date": "17-Jan-26",
+    "day": "Sat",
+    "sessions": {
+      "2": {
+        "A": "INTECO"
+      },
+      "3": {
+        "A": "INTECO"
+      },
+      "4": {
+        "A": "DEIX"
+      },
+      "5": {
+        "A": "DEIX"
+      }
+    }
+  },
+  {
+    "date": "19-Jan-26",
+    "day": "Mon",
+    "sessions": {
+      "1": {
+        "A": "EICEL"
+      },
+      "2": {
+        "B": "ETM",
+        "A": "SOMT"
+      },
+      "3": {
+        "B": "ETM",
+        "A": "SOMT"
+      },
+      "4": {
+        "A": "SCGF"
+      },
+      "5": {
+        "A": "FINDER"
+      },
+      "6": {
+        "A": "PFFS"
+      }
+    }
+  },
+  {
+    "date": "20-Jan-26",
+    "day": "Tue",
+    "sessions": {
+      "1": {
+        "A": "INTECO"
+      },
+      "2": {
+        "A": "NVCR",
+        "B": "SMTI"
+      },
+      "3": {
+        "B": "NVCR",
+        "A": [
+          "SMTI",
+          "OPRM"
+        ]
+      },
+      "4": {
+        "A": "GTMD"
+      },
+      "5": {
+        "A": [
+          "FINDER",
+          "BOPM"
+        ]
+      },
+      "6": {
+        "A": "BOPM"
+      }
+    }
+  },
+  {
+    "date": "21-Jan-26",
+    "day": "Wed",
+    "sessions": {
+      "1": {
+        "B": "SOMT"
+      },
+      "2": {
+        "B": "SOMT"
+      },
+      "3": {
+        "A": "SCGF"
+      },
+      "4": {
+        "A": "EICEL"
+      },
+      "5": {
+        "A": "EMCRM"
+      },
+      "6": {
+        "A": "EMCRM"
+      },
+      "7": {
+        "B": "EMCRM"
+      }
+    }
+  },
+  {
+    "date": "22-Jan-26",
+    "day": "Thu",
+    "sessions": {
+      "1": {
+        "A": "SCGF"
+      },
+      "2": {
+        "A": "PFFS"
+      },
+      "3": {
+        "A": "PFFS"
+      },
+      "4": {
+        "B": "NVCR",
+        "A": [
+          "SMTI",
+          "OPRM"
+        ]
+      },
+      "5": {
+        "A": "NVCR",
+        "B": "SMTI"
+      },
+      "6": {
+        "B": "EMCRM",
+        "A": "SDM"
+      },
+      "7": {
+        "A": "EMCRM",
+        "B": "SDM"
+      }
+    }
+  },
+  {
+    "date": "23-Jan-26",
+    "day": "Fri",
+    "sessions": {
+      "1": {
+        "A": "EMCRM"
+      },
+      "2": {
+        "B": "EMCRM",
+        "A": "SDM"
+      },
+      "3": {
+        "B": "EMCRM"
+      },
+      "4": {
+        "B": "SDM"
+      },
+      "5": {
+        "A": "GTMD"
+      },
+      "6": {
+        "A": "OPRM"
+      }
+    }
+  },
+  {
+    "date": "24-Jan-26",
+    "day": "Sat",
+    "sessions": {
+      "1": {
+        "A": "SDM"
+      },
+      "2": {
+        "B": "SDM"
+      },
+      "3": {
+        "A": "DEIX"
+      },
+      "4": {
+        "A": "DEIX"
+      },
+      "5": {
+        "A": "SDM"
+      },
+      "6": {
+        "B": "SDM"
+      }
+    }
+  },
+  {
+    "date": "25-Jan-26",
+    "day": "Sun",
+    "sessions": {
+      "1": {
+        "A": "SDM",
+        "B": "SDM"
+      }
+    }
+  },
+  {
+    "date": "27-Jan-26",
+    "day": "Tue",
+    "sessions": {
+      "2": {
+        "A": "NVCR",
+        "B": "SMTI"
+      },
+      "3": {
+        "B": "NVCR",
+        "A": [
+          "SMTI",
+          "OPRM"
+        ]
+      },
+      "4": {
+        "A": [
+          "FINDER",
+          "BOPM"
+        ]
+      },
+      "5": {
+        "A": "BOPM"
+      },
+      "6": {
+        "A": "SCGF"
+      }
+    }
+  },
+  {
+    "date": "28-Jan-26",
+    "day": "Wed",
+    "sessions": {
+      "2": {
+        "A": "SCGF"
+      },
+      "3": {
+        "A": "GTMD"
+      },
+      "4": {
+        "A": "ETM",
+        "B": "SOMT"
+      },
+      "5": {
+        "A": "ETM",
+        "B": "SOMT"
+      },
+      "6": {
+        "A": "EICEL"
+      }
+    }
+  },
+  {
+    "date": "29-Jan-26",
+    "day": "Thu",
+    "sessions": {
+      "1": {
+        "B": "ETM",
+        "A": "SOMT"
+      },
+      "2": {
+        "B": "ETM",
+        "A": "SOMT"
+      },
+      "3": {
+        "B": "NVCR",
+        "A": [
+          "SMTI",
+          "OPRM"
+        ]
+      },
+      "4": {
+        "A": "NVCR",
+        "B": "SMTI"
+      },
+      "5": {
+        "A": "INTECO"
+      },
+      "6": {
+        "A": "FINDER"
+      }
+    }
+  },
+  {
+    "date": "30-Jan-26",
+    "day": "Fri",
+    "sessions": {
+      "2": {
+        "A": "EICEL"
+      },
+      "3": {
+        "A": "GTMD"
+      },
+      "4": {
+        "A": "SCGF"
+      },
+      "5": {
+        "A": "PFFS"
+      }
+    }
+  },
+  {
+    "date": "31-Jan-26",
+    "day": "Sat",
+    "sessions": {
+      "1": {
+        "B": "NVCR"
+      },
+      "2": {
+        "A": "NVCR"
+      },
+      "3": {
+        "A": "DEIX"
+      },
+      "4": {
+        "A": "DEIX"
+      },
+      "5": {
+        "A": "INTECO"
+      },
+      "6": {
+        "A": "INTECO"
+      }
+    }
+  },
+  {
+    "date": "02-Feb-26",
+    "day": "Mon",
+    "sessions": {
+      "3": {
+        "A": "PFFS"
+      },
+      "4": {
+        "A": "BOPM"
+      },
+      "5": {
+        "A": "BOPM"
+      }
+    }
+  },
+  {
+    "date": "03-Feb-26",
+    "day": "Tue",
+    "sessions": {
+      "2": {
+        "A": "NVCR",
+        "B": "SMTI"
+      },
+      "3": {
+        "B": "NVCR",
+        "A": [
+          "SMTI",
+          "OPRM"
+        ]
+      },
+      "4": {
+        "A": [
+          "FINDER",
+          "BOPM"
+        ]
+      },
+      "5": {
+        "A": "BOPM"
+      },
+      "6": {
+        "A": "EICEL"
+      }
+    }
+  },
+  {
+    "date": "04-Feb-26",
+    "day": "Wed",
+    "sessions": {
+      "2": {
+        "A": "EICEL"
+      },
+      "3": {
+        "A": "GTMD"
+      },
+      "4": {
+        "A": "ETM",
+        "B": "SOMT"
+      },
+      "5": {
+        "A": "ETM",
+        "B": "SOMT"
+      },
+      "6": {
+        "A": "PFFS"
+      }
+    }
+  },
+  {
+    "date": "05-Feb-26",
+    "day": "Thu",
+    "sessions": {
+      "2": {
+        "A": "FINDER"
+      },
+      "3": {
+        "B": "ETM",
+        "A": "SOMT"
+      },
+      "4": {
+        "B": "ETM",
+        "A": "SOMT"
+      },
+      "5": {
+        "B": "NVCR",
+        "A": [
+          "SMTI",
+          "OPRM"
+        ]
+      },
+      "6": {
+        "A": "NVCR",
+        "B": "SMTI"
+      }
+    }
+  },
+  {
+    "date": "06-Feb-26",
+    "day": "Fri",
+    "sessions": {
+      "2": {
+        "A": "PFFS"
+      },
+      "3": {
+        "A": "GTMD"
+      },
+      "4": {
+        "A": "DEIX"
+      },
+      "5": {
+        "A": "DEIX"
+      }
+    }
+  },
+  {
+    "date": "07-Feb-26",
+    "day": "Sat",
+    "sessions": {
+      "3": {
+        "A": "INTECO"
+      },
+      "4": {
+        "A": "INTECO"
+      },
+      "5": {
+        "A": "NVCR",
+        "B": "SMTI"
+      },
+      "6": {
+        "B": "NVCR",
+        "A": "SMTI"
+      }
+    }
+  },
+  {
+    "date": "10-Feb-26",
+    "day": "Tue",
+    "sessions": {
+      "1": {
+        "A": "NVCR",
+        "B": "SMTI"
+      },
+      "2": {
+        "B": "NVCR",
+        "A": [
+          "SMTI",
+          "OPRM"
+        ]
+      },
+      "3": {
+        "A": "GTMD"
+      },
+      "4": {
+        "A": "FINDER"
+      },
+      "5": {
+        "A": "PFFS"
+      },
+      "6": {
+        "A": "ENTM"
+      },
+      "7": {
+        "A": "ENTM"
+      }
+    }
+  },
+  {
+    "date": "11-Feb-26",
+    "day": "Wed",
+    "sessions": {
+      "1": {
+        "A": "ETM"
+      },
+      "2": {
+        "A": "ETM"
+      },
+      "3": {
+        "A": "EICEL"
+      },
+      "4": {
+        "A": "SCGF"
+      },
+      "5": {
+        "A": "EMCRM"
+      },
+      "6": {
+        "A": "EMCRM"
+      },
+      "7": {
+        "B": "EMCRM"
+      }
+    }
+  },
+  {
+    "date": "12-Feb-26",
+    "day": "Thu",
+    "sessions": {
+      "1": {
+        "A": "FINDER"
+      },
+      "2": {
+        "A": "NVCR",
+        "B": "SMTI"
+      },
+      "3": {
+        "B": "NVCR",
+        "A": [
+          "SMTI",
+          "OPRM"
+        ]
+      },
+      "4": {
+        "A": "INTECO"
+      },
+      "5": {
+        "A": "EMCRM",
+        "B": "SDM"
+      },
+      "6": {
+        "B": "EMCRM",
+        "A": "SDM"
+      },
+      "7": {
+        "B": "EMCRM"
+      }
+    }
+  },
+  {
+    "date": "13-Feb-26",
+    "day": "Fri",
+    "sessions": {
+      "1": {
+        "B": "EMCRM"
+      },
+      "2": {
+        "A": "EMCRM",
+        "B": "SDM"
+      },
+      "3": {
+        "A": "PFFS"
+      },
+      "4": {
+        "A": "SDM"
+      },
+      "5": {
+        "A": "GTMD"
+      },
+      "6": {
+        "B": "SDM",
+        "A": "SCGF"
+      }
+    }
+  },
+  {
+    "date": "14-Feb-26",
+    "day": "Sat",
+    "sessions": {
+      "2": {
+        "A": "SDM"
+      },
+      "3": {
+        "B": "ETM",
+        "A": "SOMT"
+      },
+      "4": {
+        "B": "ETM",
+        "A": "SOMT"
+      },
+      "5": {
+        "B": "SDM"
+      },
+      "6": {
+        "A": "SDM"
+      }
+    }
+  },
+  {
+    "date": "15-Feb-26",
+    "day": "Sun",
+    "sessions": {
+      "1": {
+        "A": "SDM"
+      },
+      "2": {
+        "B": "SDM"
+      },
+      "3": {
+        "B": "SOMT"
+      },
+      "4": {
+        "A": "ETM",
+        "B": "SOMT"
+      },
+      "5": {
+        "A": "ETM"
+      }
+    }
+  },
+  {
+    "date": "16-Feb-26",
+    "day": "Mon",
+    "sessions": {
+      "2": {
+        "A": "EICEL"
+      },
+      "3": {
+        "A": "PFFS"
+      },
+      "5": {
+        "A": "SCGF"
+      }
+    }
+  },
+  {
+    "date": "17-Feb-26",
+    "day": "Tue",
+    "sessions": {
+      "2": {
+        "B": "NVCR",
+        "A": [
+          "SMTI",
+          "OPRM"
+        ]
+      },
+      "3": {
+        "A": "NVCR",
+        "B": "SMTI"
+      },
+      "4": {
+        "A": "GTMD"
+      },
+      "5": {
+        "A": "FINDER"
+      }
+    }
+  },
+  {
+    "date": "18-Feb-26",
+    "day": "Wed",
+    "sessions": {
+      "2": {
+        "A": "EICEL"
+      },
+      "3": {
+        "A": "SOMT"
+      },
+      "4": {
+        "A": "SOMT"
+      },
+      "5": {
+        "A": "SCGF"
+      }
+    }
+  },
+  {
+    "date": "19-Feb-26",
+    "day": "Thu",
+    "sessions": {
+      "1": {
+        "B": "SOMT"
+      },
+      "2": {
+        "B": "SOMT"
+      },
+      "3": {
+        "A": "GTMD"
+      },
+      "4": {
+        "A": "INTECO"
+      },
+      "5": {
+        "A": "NVCR",
+        "B": "SMTI"
+      },
+      "6": {
+        "B": "NVCR",
+        "A": [
+          "SMTI",
+          "OPRM"
+        ]
+      }
+    }
+  },
+  {
+    "date": "20-Feb-26",
+    "day": "Fri",
+    "sessions": {
+      "1": {
+        "A": "FINDER"
+      },
+      "2": {
+        "A": "EICEL"
+      },
+      "3": {
+        "A": "GTMD"
+      },
+      "4": {
+        "A": "ENTM"
+      },
+      "5": {
+        "A": "ENTM"
+      },
+      "6": {
+        "A": "PFFS"
+      }
+    }
+  },
+  {
+    "date": "21-Feb-26",
+    "day": "Sat",
+    "sessions": {
+      "2": {
+        "A": "DEIX"
+      },
+      "3": {
+        "A": "DEIX"
+      },
+      "4": {
+        "A": "INTECO"
+      },
+      "5": {
+        "A": "INTECO"
+      }
+    }
+  },
+  {
+    "date": "22-Feb-26",
+    "day": "Sun",
+    "sessions": {
+      "4": {
+        "A": "ETM"
+      },
+      "5": {
+        "A": "ETM"
+      }
+    }
+  },
+  {
+    "date": "23-Feb-26",
+    "day": "Mon",
+    "sessions": {
+      "2": {
+        "A": "EICEL"
+      },
+      "3": {
+        "A": "PFFS"
+      },
+      "4": {
+        "B": "ETM"
+      },
+      "5": {
+        "B": "ETM"
+      },
+      "6": {
+        "A": "SCGF"
+      }
+    }
+  },
+  {
+    "date": "24-Feb-26",
+    "day": "Tue",
+    "sessions": {
+      "2": {
+        "A": "FINDER"
+      },
+      "3": {
+        "A": "GTMD"
+      },
+      "4": {
+        "B": "NVCR",
+        "A": [
+          "SMTI",
+          "OPRM"
+        ]
+      },
+      "5": {
+        "A": "NVCR",
+        "B": "SMTI"
+      },
+      "6": {
+        "A": "ENTM"
+      },
+      "7": {
+        "A": "ENTM"
+      }
+    }
+  },
+  {
+    "date": "25-Feb-26",
+    "day": "Wed",
+    "sessions": {
+      "1": {
+        "A": "EICEL"
+      },
+      "2": {
+        "A": "SCGF"
+      },
+      "3": {
+        "A": "ETM",
+        "B": "SOMT"
+      },
+      "4": {
+        "A": "ETM",
+        "B": "SOMT"
+      },
+      "5": {
+        "A": "PFFS"
+      },
+      "6": {
+        "A": "INTECO"
+      }
+    }
+  },
+  {
+    "date": "26-Feb-26",
+    "day": "Thu",
+    "sessions": {
+      "1": {
+        "A": "NVCR",
+        "B": "SMTI"
+      },
+      "2": {
+        "B": "NVCR",
+        "A": [
+          "SMTI",
+          "OPRM"
+        ]
+      },
+      "3": {
+        "A": "FINDER"
+      },
+      "4": {
+        "B": "ETM",
+        "A": "SOMT"
+      },
+      "5": {
+        "B": "ETM",
+        "A": "SOMT"
+      }
+    }
+  },
+  {
+    "date": "02-Mar-26",
+    "day": "Mon",
+    "sessions": {
+      "1": {
+        "A": "ETM",
+        "B": "SOMT"
+      },
+      "2": {
+        "A": "ETM",
+        "B": "SOMT"
+      },
+      "3": {
+        "A": "FINDER"
+      },
+      "4": {
+        "A": "EICEL"
+      },
+      "5": {
+        "A": "SCGF"
+      }
+    }
+  },
+  {
+    "date": "03-Mar-26",
+    "day": "Tue",
+    "sessions": {
+      "2": {
+        "B": "ETM",
+        "A": "SOMT"
+      },
+      "3": {
+        "B": "ETM",
+        "A": "SOMT"
+      },
+      "4": {
+        "A": "NVCR",
+        "B": "SMTI"
+      },
+      "5": {
+        "B": "NVCR",
+        "A": [
+          "SMTI",
+          "OPRM"
+        ]
+      },
+      "6": {
+        "A": "PFFS"
+      }
+    }
+  },
+  {
+    "date": "05-Mar-26",
+    "day": "Thu",
+    "sessions": {
+      "1": {
+        "A": "FINDER"
+      },
+      "2": {
+        "A": "INTECO"
+      },
+      "3": {
+        "A": "EICEL"
+      },
+      "4": {
+        "A": "SCGF"
+      },
+      "5": {
+        "A": "EMCRM",
+        "B": "SDM"
+      },
+      "6": {
+        "B": "EMCRM",
+        "A": "SDM"
+      },
+      "7": {
+        "B": "EMCRM"
+      }
+    }
+  },
+  {
+    "date": "06-Mar-26",
+    "day": "Fri",
+    "sessions": {
+      "1": {
+        "A": "EMCRM"
+      },
+      "2": {
+        "A": "EMCRM",
+        "B": "SDM"
+      },
+      "3": {
+        "B": "EMCRM",
+        "A": "PFFS"
+      },
+      "4": {
+        "A": "SDM"
+      },
+      "6": {
+        "B": "SDM"
+      }
+    }
+  },
+  {
+    "date": "07-Mar-26",
+    "day": "Sat",
+    "sessions": {
+      "2": {
+        "A": "SDM"
+      },
+      "3": {
+        "A": "DEIX"
+      },
+      "4": {
+        "A": "DEIX"
+      },
+      "5": {
+        "B": "SDM"
+      },
+      "6": {
+        "A": "SDM"
+      }
+    }
+  },
+  {
+    "date": "08-Mar-26",
+    "day": "Sun",
+    "sessions": {
+      "1": {
+        "A": "SDM"
+      },
+      "2": {
+        "B": "SDM"
+      }
+    }
+  },
+  {
+    "date": "09-Mar-26",
+    "day": "Mon",
+    "sessions": {
+      "3": {
+        "A": "EICEL"
+      },
+      "4": {
+        "A": "SCGF"
+      },
+      "5": {
+        "A": "PFFS"
+      },
+      "6": {
+        "A": "PFFS"
+      }
+    }
+  },
+  {
+    "date": "10-Mar-26",
+    "day": "Tue",
+    "sessions": {
+      "2": {
+        "A": "FINDER"
+      },
+      "3": {
+        "A": "GTMD"
+      },
+      "4": {
+        "A": "NVCR",
+        "B": "SMTI"
+      },
+      "5": {
+        "B": "NVCR",
+        "A": [
+          "SMTI",
+          "OPRM"
+        ]
+      }
+    }
+  },
+  {
+    "date": "11-Mar-26",
+    "day": "Wed",
+    "sessions": {
+      "1": {
+        "B": "SOMT"
+      },
+      "2": {
+        "B": "SOMT"
+      },
+      "4": {
+        "A": "EICEL"
+      },
+      "5": {
+        "A": "SCGF"
+      }
+    }
+  },
+  {
+    "date": "12-Mar-26",
+    "day": "Thu",
+    "sessions": {
+      "1": {
+        "A": "NVCR",
+        "B": "SMTI"
+      },
+      "2": {
+        "B": "NVCR",
+        "A": "SMTI"
+      },
+      "3": {
+        "A": "INTECO"
+      },
+      "4": {
+        "A": "INTECO"
+      },
+      "5": {
+        "A": "FINDER"
+      },
+      "6": {
+        "A": "ENTM"
+      },
+      "7": {
+        "A": "ENTM"
+      }
+    }
+  },
+  {
+    "date": "13-Mar-26",
+    "day": "Fri",
+    "sessions": {
+      "1": {
+        "A": "SOMT"
+      },
+      "2": {
+        "A": "SOMT"
+      },
+      "3": {
+        "A": "GTMD"
+      },
+      "4": {
+        "A": "PFFS"
+      },
+      "5": {
+        "A": "PFFS"
+      },
+      "7": {
+        "A": "ETM"
+      }
+    }
+  },
+  {
+    "date": "14-Mar-26",
+    "day": "Sat",
+    "sessions": {
+      "2": {
+        "A": "DEIX"
+      },
+      "3": {
+        "A": "DEIX"
+      },
+      "4": {
+        "A": "ETM"
+      },
+      "5": {
+        "A": "OPRM"
+      },
+      "6": {
+        "B": "ETM",
+        "A": "OPRM"
+      }
+    }
+  },
+  {
+    "date": "15-Mar-26",
+    "day": "Sun",
+    "sessions": {
+      "1": {
+        "B": "ETM"
+      }
+    }
+  },
+  {
+    "date": "16-Mar-26",
+    "day": "Mon",
+    "sessions": {
+      "2": {
+        "A": "DEIX"
+      },
+      "3": {
+        "A": "DEIX"
+      },
+      "4": {
+        "A": "NVCR",
+        "B": "SMTI"
+      },
+      "5": {
+        "B": "NVCR",
+        "A": "SMTI"
+      }
+    }
+  },
+  {
+    "date": "17-Mar-26",
+    "day": "Tue",
+    "sessions": {
+      "2": {
+        "A": "GTMD"
+      },
+      "3": {
+        "A": "GTMD"
+      },
+      "4": {
+        "A": "ENTM"
+      },
+      "5": {
+        "A": "ENTM"
+      },
+      "6": {
+        "B": "NVCR"
+      },
+      "7": {
+        "B": "NVCR"
+      }
+    }
+  },
+  {
+    "date": "18-Mar-26",
+    "day": "Wed",
+    "sessions": {
+      "2": {
+        "A": [
+          "SMTI",
+          "OPRM"
+        ]
+      },
+      "3": {
+        "B": "SMTI"
+      },
+      "4": {
+        "A": "ETM",
+        "B": "SOMT"
+      },
+      "5": {
+        "A": "ETM",
+        "B": "SOMT"
+      },
+      "6": {
+        "A": "NVCR"
+      },
+      "7": {
+        "A": "NVCR"
+      }
+    }
+  },
+  {
+    "date": "19-Mar-26",
+    "day": "Thu",
+    "sessions": {
+      "2": {
+        "B": "ETM",
+        "A": "SOMT"
+      },
+      "3": {
+        "B": "ETM",
+        "A": "SOMT"
+      },
+      "4": {
+        "A": "INTECO"
+      },
+      "5": {
+        "A": "INTECO"
+      },
+      "6": {
+        "A": "EMCRM"
+      },
+      "7": {
+        "B": "EMCRM"
+      }
+    }
+  },
+  {
+    "date": "20-Mar-26",
+    "day": "Fri",
+    "sessions": {
+      "1": {
+        "A": "EMCRM"
+      },
+      "2": {
+        "A": "EMCRM"
+      },
+      "3": {
+        "B": "SMTI"
+      },
+      "4": {
+        "A": [
+          "SMTI",
+          "OPRM"
+        ]
+      },
+      "5": {
+        "B": "EMCRM"
+      },
+      "6": {
+        "B": "EMCRM"
+      }
+    }
+  },
+  {
+    "date": "21-Mar-26",
+    "day": "Sat",
+    "sessions": {
+      "1": {
+        "B": "EMCRM"
+      },
+      "2": {
+        "B": "EMCRM"
+      },
+      "3": {
+        "A": "EMCRM"
+      },
+      "4": {
+        "A": "EMCRM"
+      },
+      "5": {
+        "A": "DEIX"
+      },
+      "6": {
+        "A": "DEIX"
+      }
+    }
+  }
+    ];
+
+    // 12 Distinct Colors
+    const colorPalette = [
+        "#FFB3BA", "#FFDFBA", "#FFFFBA", "#BAFFC9", "#BAE1FF", "#E6B3FF",
+        "#FFB3E6", "#B3FFF0", "#E6FF80", "#FF9999", "#99CCFF", "#CC99FF"
+    ];
+
+    // Setup Course Selection Table
+    const selectBody = document.getElementById('courseSelectionBody');
+    courses.forEach((c, index) => {
+        const row = document.createElement('tr');
+        // Assign default color cyclically
+        const defaultColor = colorPalette[index % colorPalette.length];
+        
+        row.innerHTML = `
+            <td>${c.id}</td>
+            <td>${c.title}</td>
+            <td>${c.faculty}</td>
+            <td>
+                <select id="sel-${c.short}" onchange="toggleColor('${c.short}')">
+                    <option value="NA" selected>NA</option>
+                    <option value="A">Section A</option>
+                    <option value="B">Section B</option>
+                </select>
+            </td>
+            <td>
+                <select id="col-${c.short}" style="background-color:white;" onchange="this.style.backgroundColor=this.value">
+                    ${colorPalette.map(col => `<option value="${col}" style="background-color:${col};" ${col === defaultColor ? 'selected' : ''}>${col}</option>`).join('')}
+                </select>
+            </td>
+        `;
+        selectBody.appendChild(row);
+    });
+
+    function toggleColor(courseShort) {
+        const sectionSel = document.getElementById(`sel-${courseShort}`);
+        const colorSel = document.getElementById(`col-${courseShort}`);
+        if (sectionSel.value === 'NA') {
+            colorSel.style.backgroundColor = 'white';
+        } else {
+            colorSel.style.backgroundColor = colorSel.value;
+        }
+    }
+
+    function generateTimetable() {
+        const userMap = {};
+        const colorMap = {};
+        courses.forEach(c => {
+            userMap[c.short] = document.getElementById(`sel-${c.short}`).value;
+            colorMap[c.short] = document.getElementById(`col-${c.short}`).value;
+        });
+
+        const tableBody = document.getElementById('scheduleBody');
+        tableBody.innerHTML = '';
+
+        // Generate dates from Jan 5 to March 29, 2026
+        const startDate = new Date(2026, 0, 5); // Jan 5, 2026
+        const endDate = new Date(2026, 2, 29); // Mar 29, 2026
+        
+        for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+            const dateStr = formatDateFromObj(d);
+            const dayName = d.toLocaleString('default', { weekday: 'short' });
+            
+            // Find existing schedule data for this date
+            const dayData = scheduleData.find(s => s.date === dateStr) || { sessions: {} };
+
+            const tr = document.createElement('tr');
+            
+            if (dayName === 'Sun') {
+                tr.className = 'sunday';
+            }
+
+            if (dayData.type === 'holiday' || dayData.type === 'exam') {
+                tr.className = dayData.type === 'holiday' ? 'holiday' : 'exam';
+                tr.innerHTML = `<td>${dateStr}</td><td>${dayName}</td><td colspan="7">${dayData.label || ''}</td>`;
+            } else {
+                tr.innerHTML = `<td>${dateStr}</td><td>${dayName}</td>`;
+                for (let i = 1; i <= 7; i++) {
+                    const cell = document.createElement('td');
+                    const sessionData = dayData.sessions ? dayData.sessions[i] : null;
+                    if (sessionData) {
+                        // Check if the user's selected section for a course matches this slot
+                        let display = '';
+                        let bgColor = '';
+                        for (const [sec, val] of Object.entries(sessionData)) {
+                            const courses = Array.isArray(val) ? val : [val];
+                            courses.forEach(courseCode => {
+                                if (userMap[courseCode] === sec) {
+                                    display += (display ? '<br>' : '') + `<span class="session-content">${courseCode}</span>`;
+                                    if (colorMap[courseCode]) {
+                                        bgColor = colorMap[courseCode];
+                                    }
+                                }
+                            });
+                        }
+                        cell.innerHTML = display;
+                        if (bgColor) {
+                            cell.style.backgroundColor = bgColor;
+                        }
+                    }
+                    tr.appendChild(cell);
+                }
+            }
+            tableBody.appendChild(tr);
+        }
+
+        document.getElementById('timetableResult').style.display = 'block';
+        document.getElementById('dlBtn').style.display = 'block';
+        window.scrollTo({ top: document.getElementById('timetableResult').offsetTop, behavior: 'smooth' });
+    }
+
+    function formatDate(dateStr) {
+        const date = new Date(dateStr);
+        const day = date.getDate().toString().padStart(2, '0');
+        const month = date.toLocaleString('default', { month: 'short' });
+        const year = date.getFullYear().toString().slice(-2);
+        return `${day}-${month}-${year}`;
+    }
+
+    function formatDateFromObj(date) {
+        const day = date.getDate().toString().padStart(2, '0');
+        const month = date.toLocaleString('default', { month: 'short' });
+        const year = date.getFullYear().toString().slice(-2);
+        return `${day}-${month}-${year}`;
+    }
+
+    function getDayName(dateStr) {
+        const date = new Date(dateStr);
+        return date.toLocaleString('default', { weekday: 'short' });
+    }
+
+    // Function to fetch the current count on page load
+    async function updateCounterDisplay() {
+        const namespace = "iimv-pgp-2026"; // Choose a unique name
+        const key = "timetable-prints";
+        try {
+            const response = await fetch(`https://api.countapi.xyz/get/${namespace}/${key}`);
+            const data = await response.json();
+            document.getElementById('printCount').innerText = data.value || 0;
+        } catch (error) {
+            document.getElementById('printCount').innerText = "0";
+        }
+    }
+
+    // Function to increment the count when printing
+    async function incrementPrintCounter() {
+        const namespace = "iimv-pgp-2026";
+        const key = "timetable-prints";
+        try {
+            const response = await fetch(`https://api.countapi.xyz/hit/${namespace}/${key}`);
+            const data = await response.json();
+            document.getElementById('printCount').innerText = data.value;
+            window.print(); // Trigger the actual print dialog
+        } catch (error) {
+            window.print();
+        }
+    }
+
+    // Call the update display function when the page loads
+    window.onload = updateCounterDisplay;
+</script>
+
+</body>
+</html>
