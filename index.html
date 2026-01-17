@@ -30,8 +30,8 @@
         .sunday { background-color: #e0e0e0; color: #555; }
         
         @media print {
-            @page { margin: 5mm; size: portrait; }
-            body { background: white; padding: 0; margin: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            @page { margin: 15mm; size: portrait; }
+            body { background: white; padding: 10mm; margin: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             .no-print { display: none !important; }
             .card { box-shadow: none; border: none; width: 100%; max-width: 100%; padding: 0; margin: 0; }
             h2 { margin-top: 0; color: #003366; font-size: 1.5rem; text-decoration: underline; }
@@ -68,14 +68,14 @@
     <div class="btn-container">
     <button class="btn btn-generate" onclick="generateTimetable()">Generate My Timetable</button>
     <p style="font-size: 0.8rem; color: #666; margin-top: 10px;">
-        Total Timetables Printed/Downloaded: <span id="printCount">Loading...</span>
+        Total Timetables generated: <span id="printCount">Loading...</span>
     </p>
 </div>
 </div>
 
-<div class="card" id="timetableResult" style="display:none;">
+<div class="card" id="timetableResult" style="display:none; margin-top: 20px;">
     <div class="btn-container no-print">
-        <button class="btn btn-download" id="dlBtn" onclick="incrementPrintCounter()">Download as PDF / Print</button>
+        <button class="btn btn-download" id="dlBtn" onclick="window.print()">Download as PDF / Print</button>
     </div>
     <h2>PGP 2024-26: Term-6 Custom Schedule</h2>
     <p style="text-align:center; font-size: 0.9rem; margin-top:-15px;">Term Period: Jan 5 - March 29, 2026</p>
@@ -1723,6 +1723,7 @@
         document.getElementById('timetableResult').style.display = 'block';
         document.getElementById('dlBtn').style.display = 'block';
         window.scrollTo({ top: document.getElementById('timetableResult').offsetTop, behavior: 'smooth' });
+        incrementCounter();
     }
 
     function formatDate(dateStr) {
@@ -1745,32 +1746,33 @@
         return date.toLocaleString('default', { weekday: 'short' });
     }
 
-async function updateCounterDisplay() {
-    const namespace = "iimv-pgp-term6-2026"; 
-    const key = "print-stats";
-    
-    fetch(`https://api.countapi.xyz/get/${namespace}/${key}`)
-        .then(res => res.json())
-        .then(data => {
-            if(data.value) document.getElementById('printCount').innerText = data.value;
-        })
-        .catch(() => {
-            document.getElementById('printCount').innerText = "Available";
-        });
-}
+    function updateCounterDisplay() {
+        const namespace = "iimv-pgp-term-6-2026"; 
+        const key = "print-stats";
+        
+        // Switched to counterapi.dev as countapi.xyz is down
+        fetch(`https://api.counterapi.dev/v1/${namespace}/${key}`)
+            .then(res => res.json())
+            .then(data => {
+                if(data.count !== undefined) document.getElementById('printCount').innerText = data.count;
+            })
+            .catch(() => {
+                document.getElementById('printCount').innerText = "0";
+            });
+    }
 
-function incrementPrintCounter() {
-    window.print();
-    const namespace = "iimv-pgp-term6-2026";
-    const key = "print-stats";
-    
-    fetch(`https://api.countapi.xyz/hit/${namespace}/${key}`)
-        .then(res => res.json())
-        .then(data => {
-            if(data.value) document.getElementById('printCount').innerText = data.value;
-        })
-        .catch(err => console.error("Counter update failed", err));
-}
+    function incrementCounter() {
+        const namespace = "iimv-pgp-term6-2026";
+        const key = "print-stats";
+        
+        // Update counter asynchronously
+        fetch(`https://api.counterapi.dev/v1/${namespace}/${key}/up`)
+            .then(res => res.json())
+            .then(data => {
+                if(data.count !== undefined) document.getElementById('printCount').innerText = data.count;
+            })
+            .catch(err => console.error("Counter update failed", err));
+    }
 
 // Ensure the counter loads on startup
 window.onload = updateCounterDisplay;
